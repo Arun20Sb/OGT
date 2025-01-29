@@ -1,5 +1,5 @@
 import { Wallet } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { ethers } from "ethers";
 import faucetContract from "../ethereum/faucet.js";
 import TileBackground from "../components/TileBackground";
@@ -9,7 +9,6 @@ const HomePage = () => {
   const [recipientAddress, setRecipientAddress] = useState("");
   const [signer, setSigner] = useState();
   const [fcContract, setFcContract] = useState();
-
   const [withDrawlError, setWithDrawlError] = useState("");
   const [withDrawlSuccess, setWithDrawlSuccess] = useState("");
   const [transactionData, setTransactionData] = useState("");
@@ -17,7 +16,6 @@ const HomePage = () => {
   const connectWallet = async () => {
     if (typeof window.ethereum !== "undefined") {
       try {
-        // Updated ethers v6 syntax
         const provider = new ethers.BrowserProvider(window.ethereum);
         const accounts = await provider.send("eth_requestAccounts", []);
         const newSigner = await provider.getSigner();
@@ -25,6 +23,9 @@ const HomePage = () => {
         setSigner(newSigner);
         setFcContract(faucetContract(provider));
         setAccount(accounts[0]);
+
+        // Save the account to localStorage
+        localStorage.setItem("connectedAccount", accounts[0]);
       } catch (error) {
         console.error("Error connecting wallet:", error);
         setWithDrawlError("Failed to connect wallet: " + error.message);
@@ -34,6 +35,37 @@ const HomePage = () => {
     }
   };
 
+  const disconnectWallet = () => {
+    setAccount("");
+    setSigner(null);
+    setFcContract(null);
+
+    // Clear the account from localStorage
+    localStorage.removeItem("connectedAccount");
+  };
+
+  // Automatically reconnect the wallet on page load
+  useEffect(() => {
+    const reconnectWallet = async () => {
+      const savedAccount = localStorage.getItem("connectedAccount");
+      if (savedAccount && typeof window.ethereum !== "undefined") {
+        try {
+          const provider = new ethers.BrowserProvider(window.ethereum);
+          const newSigner = await provider.getSigner();
+
+          setSigner(newSigner);
+          setFcContract(faucetContract(provider));
+          setAccount(savedAccount);
+        } catch (error) {
+          console.error("Error reconnecting wallet:", error);
+          localStorage.removeItem("connectedAccount");
+        }
+      }
+    };
+
+    reconnectWallet();
+  }, []);
+
   const getOGTHandler = async () => {
     setWithDrawlError("");
     setWithDrawlSuccess("");
@@ -41,17 +73,6 @@ const HomePage = () => {
       if (!fcContract || !signer) {
         throw new Error("Please connect your wallet first");
       }
-
-      // Get provider from the contract or create new one
-      const provider = new ethers.BrowserProvider(window.ethereum);
-
-      // Check contract balance
-      const balance = await provider.getBalance(fcContract.target);
-      console.log("Contract balance:", balance);
-
-      // Check network
-      const network = await provider.getNetwork();
-      console.log("Current network:", network.chainId);
 
       const fcContractWithSigner = fcContract.connect(signer);
       const response = await fcContractWithSigner.requestTokens();
@@ -69,7 +90,6 @@ const HomePage = () => {
     getOGTHandler();
   };
 
-  // Return statement exactly as before - no styling changes
   return (
     <div className="relative min-h-screen">
       <TileBackground />
@@ -80,7 +100,7 @@ const HomePage = () => {
               OG Token Faucet
             </h1>
             <button
-              onClick={connectWallet}
+              onClick={account ? disconnectWallet : connectWallet}
               className={`flex items-center gap-3 text-xl bg-gray-50 text-gray-900 px-4 py-2 rounded-md hover:bg-green-400 hover:text-black transition-all ${
                 account ? "text-green-500 font-bold" : ""
               }`}
@@ -115,7 +135,11 @@ const HomePage = () => {
             )}
             {withDrawlSuccess && (
               <div className="text-balance text-indigo-300 text-lg">
-                {withDrawlSuccess}
+                <h1>{withDrawlSuccess}</h1>
+                <p>
+                  To recieve Tokens into your metamask, import from here:{" "}
+                  <strong>0x36b2285628e088FD7Ed21C1a6624a8FA90C26961</strong>
+                </p>
               </div>
             )}
           </div>
