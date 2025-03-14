@@ -5,6 +5,7 @@ import {ERC20} from "lib/openzeppelin-contracts/contracts/token/ERC20/ERC20.sol"
 import {ERC20Capped} from "lib/openzeppelin-contracts/contracts/token/ERC20/extensions/ERC20Capped.sol";
 
 contract OGToken is ERC20Capped {
+    // Custom Errors:
     error OGToken__OnlyOwner();
     error OGToken__InvalidReward();
     error OGToken__ZeroAddress();

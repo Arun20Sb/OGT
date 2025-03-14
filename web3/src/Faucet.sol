@@ -2,16 +2,16 @@
 pragma solidity ^0.8.24;
 
 interface IERC20 {
-    function transfer(address to, uint256 amount) external returns (bool); // `view` removed as `transfer` changes state
+    function transfer(address to, uint256 amount) external returns (bool);
     function balanceOf(address account) external view returns (uint256);
-    event Transfer(address indexed from, address indexed to, uint256 value); // Corrected parameter types
+    event Transfer(address indexed from, address indexed to, uint256 value); 
 }
 
 contract Faucet {
     // Errors:
-    error ZeroAddress();
-    error InsufficientBalanceAvailable();
-    error ComeTomorrow();
+    error Faucet_ZeroAddress();
+    error Faucet_InsufficientBalanceAvailable();
+    error Faucet_ComeTomorrow();
 
     // Events:
     event Deposit(address indexed from, uint256 indexed amount);
@@ -26,18 +26,18 @@ contract Faucet {
     mapping(address => uint256) public nextRequestTime; 
 
     constructor(address tokenAddress) payable {
-        if (tokenAddress == address(0)) revert ZeroAddress(); 
+        if (tokenAddress == address(0)) revert Faucet_ZeroAddress(); 
         token = IERC20(tokenAddress);
         owner = payable(msg.sender);
     }
 
     // Request Tokens:
     function requestTokens() public {
-        if (msg.sender == address(0)) revert ZeroAddress();
+        if (msg.sender == address(0)) revert Faucet_ZeroAddress();
         if (token.balanceOf(address(this)) < withdrawalAmount)
-            revert InsufficientBalanceAvailable();
+            revert Faucet_InsufficientBalanceAvailable();
         if (block.timestamp < nextRequestTime[msg.sender])
-            revert ComeTomorrow();
+            revert Faucet_ComeTomorrow();
 
         nextRequestTime[msg.sender] = block.timestamp + lockTime;
 
